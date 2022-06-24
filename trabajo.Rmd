@@ -1,0 +1,612 @@
+---
+title: "trabajo grupal- Jazmin Esteban"
+author: "Estadística para el Análisis Político 2 "
+date: "24/11/21"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(rio)
+library(ggplot2) #para hacer gráficos
+library(Hmisc)   #para correlación
+library(nortest)
+library(lm.beta)
+library(car)
+```
+
+=================================================================
+
+# **Caso de estudio: Nivel de pobreza en el Perú a nivel de distritos**
+
+El propósito del estudio se realiza con el fin de identificar como se
+distribuye el nivel de pobreza en el Perú, a nivel de distritos, a
+partir de diferentes aristas: condición de vivienda, nivel educativo,
+programas sociales y los servicios que cuentan.
+
+En este caso, se realiza un enfoque en cuanto a vivienda. Es decir, se
+estudiara la condición dentro de la vivienda con que cuenta la población
+para realizar sus diferentes actividades. De acuerdo con ello, se
+evaluara el porcentaje de pobreza(variable dependiente) según el
+abastecimiento de agua y el consumo de energía domestica por vivienda
+(variables independientes). Asimismo,se utilizara el porcentaje de la
+población, en cien mil, como variable control.
+
+Para ello, las hipótesis que se plantean son:
+
+-   H1: El porcentaje de pobreza responde bajo criterios de
+    abastecimiento de agua mediante la red publica por vivienda
+
+-   H2: El porcentaje de pobreza responde bajo criterios de consumo de
+    leña como combustible de cocina por vivienda
+
+*Preparación de los datos*
+
+```{r}
+data="https://github.com/jazzz12/Trabajo-Grupal/blob/main/base_de_datos.xlsx?raw=true"
+data= import(data)
+```
+
+```{r}
+str(data)
+```
+
+```{r}
+names(data)
+```
+
+```{r}
+data$poblacienmil= as.numeric(data$poblacienmil)
+```
+
+*Limpiando un poco la base de datos:*
+
+```{r}
+library(stringr)
+data[1,2]
+```
+
+```{r}
+data$Codigo= stringr::str_pad(data$Codigo, 6, side = "left", pad =0)
+```
+
+```{r}
+head(data)
+```
+
+***Representación de las hipótesis:***
+
+-   H1: "El porcentaje de pobreza responde bajo criterios de
+    abastecimiento de agua mediante la red publica por vivienda"
+    ,controlando por "el tamaño de la población".Esto se figuaria de la
+    siguiente manera:
+
+```{r}
+modelo1= lm(porpobre ~redpublica + poblacienmil, data = data)
+summary(modelo1)
+```
+
+```{r,warning=FALSE, message=FALSE, echo=TRUE, results='asis'}
+library(stargazer)
+reg1= lm(modelo1, data = data)
+stargazer(reg1, type = "html",intercept.bottom = FALSE, style="all2")
+```
+
+Viendo la regresión, se puede estimar que redpublica tiene un efecto
+significativo al 0.1; asimismo, tiene un efecto inversamente
+proporcional, ya que el coeficiente calculado es negativo; y, por
+ultimo, su magnitud es de -0.271,es decir, lo que varía porpobre en
+promedio cuando redpublica se disminuya en una unidad, controlando por
+poblacienmil.
+
+Se puede representar esa relación mediante una ecuación:
+
+#### porpobre= 56.863+-0.27135.redpublica+-5.60810⋅poblacioncienmil+ϵ
+
+Adicional mente, se brinda una estimación del R cuadrado ajustado
+(0.2336) que nos aproxima un porcentaje de una pista posible a la
+escenario que se quiere evaluar
+
+Pero,*¿Si evaluamos bajo el consumo de leña como combustible?...*
+
+-   H2: El porcentaje de pobreza responde bajo criterios de consumo de
+    leña como combustible de cocina por vivienda
+
+```{r}
+modelo2= lm(porpobre ~redpublica + leña + poblacienmil , data=data)
+summary(modelo2)
+```
+
+```{r,warning=FALSE, message=FALSE, echo=TRUE, results='asis'}
+reg2= lm(modelo2, data = data)
+stargazer(reg2, type = "html",intercept.bottom = FALSE, style= "all2")
+```
+
+Al igual que el anterior modelo, al probar esta hipótesis vemos, que
+redpublica también tiene efecto significativo al 0.1 ; ese efecto es
+inverso, pues el coeficiente calculado es negativo; y la magnitud de ese
+efecto es -0.191, lo que indica cuanto varía porpobre en promedio cuando
+redpublica se disminuya en una unidad, controlando por poblacienmil.
+
+Pero, vemos que leña tiene efecto significativo al 0.001 ; ese efecto es
+directa, pues el coeficiente calculado es positiva ; y la magnitud de
+ese efecto es 0.263, lo que indica cuanto varía porpobre en promedio
+cuando leña aumenta en una unidad (también controlado por poblacienmil).
+
+Esto es información suficiente para representar esa relación con una
+ecuación:
+
+#### popobre=29.74641+-0.19094⋅redpublica+0.26265.leña+-5.608⋅poblacioncienmil+e
+
+Hemos podido percibir dos modelos que nos permitian brindar los
+escenarios esperados; no obstante, se escogerá uno de ellos. Para ello,
+se empleara la tabla anova que nos permite ver la diferencia
+significativa entre ambos modelos.
+
+*H0= Existe una igualdad de varianzas entre las medias grupales de ambos
+modelos*
+
+[**tabla de de análisis de variaran**]{.underline}
+
+```{r,warning=FALSE, message=FALSE, echo=TRUE, results='asis'}
+tanova= anova(reg1, reg2)
+stargazer(tanova,type='html',summary = F,title = "Table de Análisis de Varianza")
+```
+
+A través de la tabla anova, podemos contrastar la hipótesis nula
+planteada. Ademas, se muestra que el modelo 2 reduce el error al incluir
+una variable mas (es decir, ambas variables independientes). Por ello,
+se escogerá el modelo 2
+
+```{r}
+library(stargazer)
+```
+
+```{r}
+stargazer(reg1,reg2, type ="text")
+```
+
+Es posible realizar una comparación entre ambos modelos. De acuerdo a
+ello, indica que el modelo dos tiene un grado de significancia mayor por
+el aumento de una variable al modelo. Debido a que, el 42,9% del
+porcentaje de la variabilidad de porpobre es predicho por redpublica y
+leña, segun su r ajustado.
+
+Ecuación del modelo 2:
+
+#### popobre=29.74641+-0.19094⋅redpublica+0.26265.leña+-5.608⋅poblacioncienmil+ϵ
+
+=================================================================
+
+Teniendo definido al modelo de regresión, se debe verificar si se
+encuentra adecuado para el estudio del caso.
+
+# Diagnostico
+
+### [`linealidad`]{.underline}
+
+Se asume relación lineal entre Y y Xs:
+
+```{r}
+plot(reg2, 1)
+```
+
+-   Según la gráfica de dispersión de los valores predichos y los
+    residuos, se muestra, aparentemente, que se cumple un supuesto de
+    linealidad. La linea roja se encuentra de manera horizontal.Por lo
+    que, la variable porpobre esta lineal mente relacionada con las
+    variables redpublica y leña. Los errores estan bien distribuidos.
+
+### [`Homocedasticidad`]{.underline}
+
+Se asume que el error del modelo de regresión no afecta a la varianza o
+dispersión de la estimación
+
+*H0= la varianza de los errores es la misma para cualquier combinación
+de los valores de las variables independientes*
+
+```{r}
+plot(reg2, 3)
+```
+
+Según el gráfico,es homocedàstico ya que parece que todos los valores de
+la variable de predicción se forman de manera homogénea y puede que los
+errores sean constantes.
+
+```{r}
+library(lmtest)
+```
+
+```{r}
+bptest(reg2)
+```
+
+Es un valor significativo; pero, la probabilidad de homocedasticidad es
+muy baja (p-value menor a 0.05) y puede que los errores se distribuyen
+normalmente. Rechazo la homocedasticidad
+
+### [`Normalidad de residuos`]{.underline}
+
+Los residuos, la diferencia entre porpobre y $\hat{porpobre}$, deben
+distribuirse de manera normal:
+
+```{r}
+plot(reg2, 2)
+```
+
+-   Se puede apreciar que los residuos no se destruyen; por lo que,
+    aparentemente se presenta una distribución normal
+
+Realizamos la prueba de normalidad Shapiro- wilk para verificar
+
+*H0: La distribución es normal H1: La distribución no es normal*
+
+```{r}
+shapiro.test(reg2$residuals)
+```
+
+Podemos observar que si existe diferencias significativas con la
+distribución (p-value\<0.05); por lo tanto, rechazamos a nuestra
+hipótesis nula. Presentamos una distribución no normal
+
+### [`no multicolinealidad`]{.underline}
+
+Si los predictores tienen una correlación muy alta entre sí, hay
+multicolinealidad, lo cual no es deseable:
+
+```{r}
+library(DescTools)
+VIF(reg2) # > 5 es problematico(retirarlo del estudio)
+```
+
+Evaluando cada variable independiente, se observa que no hay
+multicolinealidad. No se presenta factor de inflasiòn de varianzas. Por
+lo que nos indica que es un buen modelo. Asimsimo, no hay ningún tipo de
+correlación o dependencia entre las variables explicativas.
+
+### [`influyentes`]{.underline}
+
+Hay casos particulares, que tienen la capacidad de influir lo que el
+modelo representa. A veces es mejor detectarlos y,en lo posible,
+suprimiéndolos:
+
+```{r}
+plot(reg2, 5)
+```
+
+Viendo a la gráfica, no se presenta un valores extremadamente atípicos
+que puedan influir severamente al modelo. Pero, es pertinente recuperar
+los posibles casos influyentes:
+
+```{r}
+checkreg2=as.data.frame(influence.measures(reg2)$is.inf)
+head(checkreg2)
+```
+
+#### *Observaciones extremas respecto a x: valor de distancia*
+
+1.  Distancia cook: mide la influencia de cada observación en el modelo
+
+2.  hatvalue: las predicciones hechas por el modelo para cada
+    observación.
+
+```{r}
+checkreg2[checkreg2$cook.d & checkreg2$hat,]
+```
+
+Se puede apreciar que no se ha detectado valores que afecten la
+regresión. En conclusión, el modelo 2 presenta ser un buen modelo para
+la investigación de la pobreza en base a las condiciones de viviendas.
+
+Hemos visto que el modelo presenta linealidad entre las variables
+independientes (redpublica y leña) con la dependiente (porpobre). Es
+decir, que existe una relación lineal (correctamente especificado) entre
+abastecimiento de agua y consumo de leña como energía en el porcentaje
+de pobreza. No obstante, presenta una homocedasticidad baja y una
+distribución no normal (aunque esto ultimo depende, ya que al ser un
+tamaño muestral tan grande, tiende a no ser normal) .A pesar de esto,
+los problemas de la homocedasticidad y de distribución normal pueden
+tener consecuencias muy leves al modelo.En cuanto al supuesto de no
+multicolinealidad, lo llega a cumplir, no presenta una relación de
+dependencia entre las variables explicativas (incluyendo a la variable
+de control) que puede ser perjudicial al modelo.Por ultimo, no se ha
+presentado valores influyentes o atípicos extremos que puedan tener un
+mayor peso en la formulación del modelo y distorsionarlo.
+
+
+=================================================================
+
+###ANALISIS CONGLOMERADO
+
+Preparación
+links de las data
+```{r}
+library(rio)
+data2="https://github.com/jazzz12/Trabajo-Grupal/blob/main/base_de_datos%20(1)%20(1).xlsx?raw=true"
+data2= import(data2)
+
+data3= "https://github.com/jazzz12/Trabajo-Grupal/blob/main/BD%20GP%207%20(1).xlsx?raw=true"
+data3= import(data3)
+```
+
+```{r}
+str(data2)
+```
+
+```{r}
+str(data3)
+```
+
+- Integrando la data 
+
+```{r}
+list(names(data), names(data2), names(data3))
+```
+
+```{r}
+keep=c(2,5)
+keep1=c(2,3,4,5)
+data=data[,keep1]
+data2=data2[,keep]
+data3=data3[,keep]
+```
+
+```{r}
+allData=merge(data,data2)
+allData=merge(allData,data3)
+```
+
+```{r}
+str(allData)
+```
+```{r}
+boxplot(allData[,-1])
+```
+
+```{r}
+library(BBmisc)
+boxplot(normalize(allData[,-1],method='range',range=c(0,1)))
+```
+
+
+
+
+```{r}
+library(BBmisc)
+boxplot(normalize(allData[,-1],method='standardize'))
+```
+puntuación z, mediana va a ser 0, la data se distribuye no tan igual,
+
+
+```{r}
+allData[,-1]=normalize(allData[,-1],method='standardize')
+allData=allData[complete.cases(allData),]
+
+#descriptivos:
+summary(allData)
+```
+
+ver correlacion
+ver el tema de la monotomia: ver si debo hacer una alteracion a la data)
+```{r}
+cor(allData[,-1])
+```
+
+```{r}
+allData$porpobre=-1*allData$porpobre
+allData$leña=-1*allData$leña
+allData$NOConexióninter=-1*allData$NOConexióninter
+#ahora:
+cor(allData[,-1])
+```
+
+Que el mayor valor, sea el mejor valor para todos, por eso que todos estan positivos, al igual al menor valor.
+
+```{r}
+dataClus=allData[,-1]
+row.names(dataClus)=allData$Distrito
+```
+
+
+###CLUSTERIZACION
+
+Proponer cantidad de clusters:
+
+```{r}
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+
+```{r}
+library(factoextra)
+fviz_nbclust(dataClus, pam,diss=g.dist,method = "gap_stat",k.max = 8,verbose = F)
+```
+
+```{r}
+library(factoextra)
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "agnes")
+```
+
+```{r}
+## PARA JERARQUICO
+library(factoextra)
+fviz_nbclust(dataClus, hcut,diss=g.dist,method = "gap_stat",k.max = 10,verbose = F,hc_func = "diana")
+```
+
+Por metodo agnes, selecciono realizar una agrupacion de 4 clusters
+Evaluamos resultados:
+```{r}
+###pam
+set.seed(123)
+grupos=4
+res.pam=pam(g.dist,k = grupos,cluster.only = F)
+dataClus$pam=res.pam$cluster
+
+###agnes
+res.agnes<- hcut(g.dist, k =grupos,hc_func='agnes',hc_method = "ward.D")
+dataClus$agnes=res.agnes$cluster
+
+### diana
+res.diana <- hcut(g.dist, k = grupos,hc_func='diana')
+dataClus$diana=res.diana$cluster
+```
+
+```{r}
+fviz_silhouette(res.pam)
+```
+```{r}
+fviz_silhouette(res.agnes)
+```
+
+```{r}
+fviz_silhouette(res.diana)
+```
+
+escogemos agnes y Encontremos los casos MAL clusterizados (silueta negativa):
+
+
+```{r}
+library(magrittr)
+
+silPAM=data.frame(res.pam$silinfo$widths)
+silPAM$country=row.names(silPAM)
+poorPAM=silPAM[silPAM$sil_width<0,'country']%>%sort()
+
+silAGNES=data.frame(res.agnes$silinfo$widths)
+silAGNES$country=row.names(silAGNES)
+poorAGNES=silAGNES[silAGNES$sil_width<0,'country']%>%sort()
+
+silDIANA=data.frame(res.diana$silinfo$widths)
+silDIANA$country=row.names(silDIANA)
+poorDIANA=silDIANA[silDIANA$sil_width<0,'country']%>%sort()
+
+###
+library("qpcR") 
+mal_Clus=as.data.frame(qpcR:::cbind.na(poorPAM, poorAGNES,poorDIANA))
+mal_Clus
+```
+```{r}
+original=aggregate(.~ agnes, data=dataClus,mean)
+original[order(original$InstiteducEnotrodist),]
+```
+
+```{r}
+dataClus$agnes=dplyr::recode(dataClus$agnes, `1` = 1, `3`=2,`4`=3,`2`=4)
+```
+
+
+```{r}
+proyeccion = cmdscale(g.dist, k=2,add = T) # k es la cantidad de dimensiones
+dataClus$dim1 <- proyeccion$points[,1]
+dataClus$dim2 <- proyeccion$points[,2]
+base= ggplot(dataClus,aes(x=dim1, y=dim2,label=row.names(dataClus))) 
+base + geom_text(size=2, aes(color=as.factor(agnes)))  + labs(title = "AGNES")
+```
+
+. Visualizar
+El dendograma nos muestra el proceso de conglomeración:
+```{r}
+fviz_dend(res.agnes, cex = 0.7, horiz = T)
+```
+```{r}
+# verificar recodificacion
+table(dataClus$diana,dataClus$agnes,dnn = c('Division','Aglomeracion'))
+```
+
+Análisis Factorial Exploratorio (EFA)
+
+matriz de correlación:
+
+```{r}
+dontselect=c("Country","porpobre", "Distrito")
+select=setdiff(names(allData),dontselect) 
+theData=allData[,select] # sin los Scores ni nombre de país.
+
+
+# esta es:
+library(polycor)
+corMatrix=polycor::hetcor(theData)$correlations
+```
+
+```{r}
+library(ggcorrplot)
+
+ggcorrplot(corMatrix)
+```
+
+No hay puntos blancos, pero aun se puede sospechar sobre este analisis factorial 
+Verificar si datos permiten factorizar:
+```{r}
+library(psych)
+psych::KMO(corMatrix) 
+```
+el KMO sale 0.67, es decir un MCA para cada variable, se estima que la variable puede ayudar mas es el de InstiteducEnotrodist
+
+Verificar si la matriz de correlaciones es adecuada
+
+Hnula: La matriz de correlacion es una matriz identidad
+```{r}
+cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
+```
+No existe matriz de identidad.
+
+
+Hnula: La matriz de correlacion es una matriz singular.
+
+```{r}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+```
+
+
+
+Determinar en cuantos factores o variables latentes podríamos redimensionar la data:
+```{r}
+fa.parallel(theData,fm = 'ML', fa = 'fa',correct = T)
+```
+
+se me sugiere agrupar en 3 factores, se puede observar que hay tres conceptos observados 
+
+Redimensionar a numero menor de factores
+Resultado inicial:
+
+```{r}
+library(GPArotation)
+resfa <- fa(theData,
+            nfactors = 3,
+            cor = 'mixed',
+            rotate = "varimax",
+            fm="minres")
+print(resfa$loadings)
+```
+
+```{r}
+print(resfa$loadings,cutoff = 0.5)
+```
+
+
+```{r}
+fa.diagram(resfa)
+```
+
+variables que aportan a los factores
+```{r}
+sort(resfa$communality)
+```
+
+Qué variables contribuyen a mas de un factor?
+
+```{r}
+
+sort(resfa$complexity)
+```
+
+
